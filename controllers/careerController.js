@@ -1,59 +1,18 @@
 import CareerApplication from "../models/Career.js";
-import cloudinary from "../config/cloudinaryConfig.js";
-import dotenv from "dotenv";
-dotenv.config();
 
 export const submitCareerApplication = async (req, res) => {
   try {
     const { position, name, email, phone, message } = req.body;
     const resumeFile = req.file;
 
-    // --- Basic Validation ---
-    if (!position || !name || !email || !phone) {
+    if (!position || !name || !email || !phone || !resumeFile) {
       return res.status(400).json({
         success: false,
-        message: "Please fill all required fields.",
+        message: "All required fields and resume must be provided.",
       });
     }
 
-    if (!resumeFile) {
-      return res.status(400).json({
-        success: false,
-        message: "Resume file is required.",
-      });
-    }
-
-    // --- Validate File Type ---
-    const allowedTypes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (!allowedTypes.includes(resumeFile.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid file type. Only PDF, DOC, DOCX are allowed.",
-      });
-    }
-
-    // --- Upload to Cloudinary from buffer ---
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: "ventura_resumes",
-          resource_type: "auto",
-          use_filename: true,
-          unique_filename: true,
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(resumeFile.buffer);
-    });
-
-    // --- Save application with resume object ---
+    // ✅ Store file directly in MongoDB
     const newApplication = new CareerApplication({
       position,
       name,
@@ -61,25 +20,24 @@ export const submitCareerApplication = async (req, res) => {
       phone,
       message,
       resume: {
+        data: resumeFile.buffer,
+        contentType: resumeFile.mimetype,
         fileName: resumeFile.originalname,
-        fileType: resumeFile.mimetype,
-        fileUrl: uploadResult.secure_url,
-        uploadedAt: new Date(),
       },
     });
 
     await newApplication.save();
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: "✅ Application submitted successfully!",
-      data: newApplication,
+      message: "Application saved successfully!",
+      applicationId: newApplication._id,
     });
   } catch (error) {
-    console.error("❌ Error submitting career application:", error);
-    return res.status(500).json({
+    console.error("❌ Error saving career application:", error);
+    res.status(500).json({
       success: false,
-      message: "Failed to submit application. Please try again later.",
+      message: "Error saving career application.",
       error: error.message,
     });
   }

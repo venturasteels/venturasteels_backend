@@ -4,31 +4,25 @@ import { submitCareerApplication } from "../controllers/careerController.js";
 
 const router = express.Router();
 
-// ✅ Use memory storage — directly uploads from buffer to Cloudinary
+// Use memory storage so file is held in buffer for MongoDB
 const storage = multer.memoryStorage();
 
-// ✅ File validation (PDF, DOC, DOCX only)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
+  const allowed = [
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type. Only PDF, DOC, and DOCX are allowed."));
-  }
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Invalid file type. Only PDF, DOC, DOCX allowed."));
 };
 
-// ✅ Multer configuration
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB max
+  limits: { fileSize: 2 * 1024 * 1024 }, 
 });
 
-// ✅ POST route for career application
 router.post("/apply", upload.single("resume"), submitCareerApplication);
 
 export default router;
