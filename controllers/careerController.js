@@ -14,30 +14,37 @@ export const submitCareerApplication = async (req, res) => {
       });
     }
 
-    // ✅ Store resume in uploads/resumes folder
+    // ✅ Ensure uploads folder exists
     const uploadDir = "uploads/resumes";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
+    // ✅ Generate unique name and save file
     const uniqueName = `${Date.now()}_${resumeFile.originalname}`;
     const filePath = path.join(uploadDir, uniqueName);
-
     fs.writeFileSync(filePath, resumeFile.buffer);
 
-    // ✅ Save MongoDB record
+    // ✅ Construct resume object as per schema
+    const resumeData = {
+      fileName: resumeFile.originalname,
+      filePath: filePath,
+      contentType: resumeFile.mimetype,
+    };
+
+    // ✅ Save record to MongoDB
     const newApplication = new CareerApplication({
       position,
       name,
       email,
       phone,
       message,
-      resumePath: filePath,
+      resume: resumeData,
     });
 
     await newApplication.save();
 
-    // ✅ Generate accessible URL for resume
+    // ✅ Return public URL (for email & frontend)
     const backendURL = process.env.BACKEND_URL || "http://localhost:5000";
     const resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
 
@@ -45,7 +52,7 @@ export const submitCareerApplication = async (req, res) => {
       success: true,
       message: "Application saved successfully!",
       applicationId: newApplication._id,
-      resumeLink, // 👈 frontend will use this
+      resumeLink, // 👈 frontend uses this in emailjs
     });
   } catch (error) {
     console.error("❌ Error saving career application:", error);

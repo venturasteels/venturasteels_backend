@@ -4,7 +4,6 @@ import { submitCareerApplication } from "../controllers/careerController.js";
 
 const router = express.Router();
 
-// Memory storage (so we can manually save file)
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
