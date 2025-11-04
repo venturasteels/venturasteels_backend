@@ -1,29 +1,13 @@
 import express from "express";
 import multer from "multer";
-import fs from "fs";
-import path from "path";
 import { submitCareerApplication } from "../controllers/careerController.js";
 
 const router = express.Router();
 
-//  Ensure upload folder exists (important for first-time deployment)
-const uploadDir = path.resolve("uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Multer memory storage (for Cloudinary)
+const storage = multer.memoryStorage();
 
-//  Multer setup for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-});
-
-//  File filter for allowed formats
+// File type validation (PDF, DOC, DOCX)
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     "application/pdf",
@@ -39,14 +23,14 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// 2MB file size limit
+// Upload middleware
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 },
 });
 
-//  POST route for career application
+// POST Route: Apply for Career
 router.post("/apply", upload.single("resume"), submitCareerApplication);
 
 export default router;
