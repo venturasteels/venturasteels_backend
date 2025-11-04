@@ -13,8 +13,12 @@ const careerApplicationSchema = new mongoose.Schema(
     },
     phone: { type: String, trim: true },
     message: { type: String, trim: true, maxlength: 500 },
+
+    // ✅ Resume info from Cloudinary
     resumeUrl: { type: String, required: true, trim: true },
     resumePublicId: { type: String, trim: true },
+
+    // ✅ Admin review status
     status: {
       type: String,
       enum: ["Pending", "Reviewed", "Shortlisted", "Rejected"],
