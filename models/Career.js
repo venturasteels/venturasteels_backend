@@ -7,9 +7,9 @@ const CareerSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   message: { type: String },
   resume: {
-    data: Buffer,
-    contentType: String,
     fileName: String,
+    filePath: String,
+    contentType: String,
   },
   createdAt: { type: Date, default: Date.now },
 });

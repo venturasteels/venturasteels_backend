@@ -4,7 +4,7 @@ import { submitCareerApplication } from "../controllers/careerController.js";
 
 const router = express.Router();
 
-// Use memory storage so file is held in buffer for MongoDB
+// Memory storage (so we can manually save file)
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
@@ -20,7 +20,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, 
+  limits: { fileSize: 2 * 1024 * 1024 },
 });
 
 router.post("/apply", upload.single("resume"), submitCareerApplication);
