@@ -14,45 +14,40 @@ export const submitCareerApplication = async (req, res) => {
       });
     }
 
-    // ✅ Ensure uploads folder exists
-    const uploadDir = "uploads/resumes";
+    const uploadDir = path.join(process.cwd(), "uploads", "resumes");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // ✅ Generate unique name and save file
     const uniqueName = `${Date.now()}_${resumeFile.originalname}`;
     const filePath = path.join(uploadDir, uniqueName);
+
     fs.writeFileSync(filePath, resumeFile.buffer);
 
-    // ✅ Construct resume object as per schema
-    const resumeData = {
-      fileName: resumeFile.originalname,
-      filePath: filePath,
-      contentType: resumeFile.mimetype,
-    };
-
-    // ✅ Save record to MongoDB
     const newApplication = new CareerApplication({
       position,
       name,
       email,
       phone,
       message,
-      resume: resumeData,
+      resume: {
+        fileName: resumeFile.originalname,
+        filePath: `uploads/resumes/${uniqueName}`,
+        contentType: resumeFile.mimetype,
+      },
     });
 
     await newApplication.save();
 
-    // ✅ Return public URL (for email & frontend)
-    const backendURL = process.env.BACKEND_URL || "http://localhost:5000";
+    const backendURL =
+      process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
     const resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
 
     res.status(201).json({
       success: true,
       message: "Application saved successfully!",
       applicationId: newApplication._id,
-      resumeLink, // 👈 frontend uses this in emailjs
+      resumeLink,
     });
   } catch (error) {
     console.error("❌ Error saving career application:", error);
