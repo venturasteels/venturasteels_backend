@@ -1,13 +1,8 @@
 import CareerApplication from "../models/Career.js";
 import cloudinary from "../config/cloudinaryConfig.js";
-import * as emailjs from "@emailjs/nodejs";
 import dotenv from "dotenv";
 dotenv.config();
 
-/**
- * Submit Career Application Controller
- * Handles resume upload (Cloudinary) + MongoDB save + EmailJS notification
- */
 export const submitCareerApplication = async (req, res) => {
   try {
     const { position, name, email, phone, message } = req.body;
@@ -28,21 +23,20 @@ export const submitCareerApplication = async (req, res) => {
       });
     }
 
-    // --- Allowed file types ---
+    // --- Validate File Type ---
     const allowedTypes = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-
     if (!allowedTypes.includes(resumeFile.mimetype)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid file type. Only PDF, DOC, and DOCX are allowed.",
+        message: "Invalid file type. Only PDF, DOC, DOCX are allowed.",
       });
     }
 
-    // --- Upload Resume to Cloudinary ---
+    // --- Upload to Cloudinary from buffer ---
     const uploadResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -59,40 +53,23 @@ export const submitCareerApplication = async (req, res) => {
       stream.end(resumeFile.buffer);
     });
 
-    const resumeUrl = uploadResult.secure_url;
-
-    // --- Save Application to MongoDB ---
+    // --- Save application with resume object ---
     const newApplication = new CareerApplication({
       position,
       name,
       email,
       phone,
       message,
-      resumeUrl, // ✅ Correct field name in schema
+      resume: {
+        fileName: resumeFile.originalname,
+        fileType: resumeFile.mimetype,
+        fileUrl: uploadResult.secure_url,
+        uploadedAt: new Date(),
+      },
     });
 
     await newApplication.save();
 
-    // --- Send Notification via EmailJS ---
-    await emailjs.send(
-      process.env.EMAILJS_CAREER_SERVICE_ID,
-      process.env.EMAILJS_CAREER_TEMPLATE_ID,
-      {
-        name,
-        email,
-        phone,
-        position,
-        message: message || "No additional message provided.",
-        resume_link: resumeUrl,
-        submittedAt: new Date().toLocaleString("en-IN"),
-      },
-      {
-        publicKey: process.env.EMAILJS_CAREER_PUBLIC_KEY,
-        privateKey: process.env.EMAILJS_CAREER_PRIVATE_KEY, // optional
-      }
-    );
-
-    // --- Success Response ---
     return res.status(201).json({
       success: true,
       message: "✅ Application submitted successfully!",
