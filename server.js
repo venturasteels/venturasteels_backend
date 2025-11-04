@@ -17,11 +17,11 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const uploadsPath = path.join(__dirname, "uploads");
+app.use("/uploads", express.static(uploadsPath));
 
 app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/contact", contactRoutes);
