@@ -1,28 +1,41 @@
-import CareerApplication from "../models/Career.js";
-import path from "path";
-import fs from "fs";
-
 export const submitCareerApplication = async (req, res) => {
   try {
     const { position, name, email, phone, message } = req.body;
     const resumeFile = req.file;
 
-    if (!position || !name || !email || !phone || !resumeFile) {
+    // Required fields (resume removed)
+    if (!position || !name || !email || !phone) {
       return res.status(400).json({
         success: false,
-        message: "All required fields and resume must be provided.",
+        message: "Position, name, email, and phone are required.",
       });
     }
 
-    const uploadDir = path.join(process.cwd(), "uploads", "resumes");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    let savedResume = null;
+    let resumeLink = null;
+
+    // If resume is uploaded → save file
+    if (resumeFile) {
+      const uploadDir = path.join(process.cwd(), "uploads", "resumes");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const uniqueName = `${Date.now()}_${resumeFile.originalname}`;
+      const filePath = path.join(uploadDir, uniqueName);
+
+      fs.writeFileSync(filePath, resumeFile.buffer);
+
+      savedResume = {
+        fileName: resumeFile.originalname,
+        filePath: `uploads/resumes/${uniqueName}`,
+        contentType: resumeFile.mimetype,
+      };
+
+      const backendURL =
+        process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
+      resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
     }
-
-    const uniqueName = `${Date.now()}_${resumeFile.originalname}`;
-    const filePath = path.join(uploadDir, uniqueName);
-
-    fs.writeFileSync(filePath, resumeFile.buffer);
 
     const newApplication = new CareerApplication({
       position,
@@ -30,18 +43,10 @@ export const submitCareerApplication = async (req, res) => {
       email,
       phone,
       message,
-      resume: {
-        fileName: resumeFile.originalname,
-        filePath: `uploads/resumes/${uniqueName}`,
-        contentType: resumeFile.mimetype,
-      },
+      resume: savedResume,
     });
 
     await newApplication.save();
-
-    const backendURL =
-      process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
-    const resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
 
     res.status(201).json({
       success: true,
