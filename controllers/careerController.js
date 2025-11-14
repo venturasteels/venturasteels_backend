@@ -1,9 +1,13 @@
+import CareerApplication from "../models/Career.js";
+import path from "path";
+import fs from "fs";
+
 export const submitCareerApplication = async (req, res) => {
   try {
     const { position, name, email, phone, message } = req.body;
     const resumeFile = req.file;
 
-    // Required fields (resume removed)
+    // Validate required fields
     if (!position || !name || !email || !phone) {
       return res.status(400).json({
         success: false,
@@ -14,9 +18,9 @@ export const submitCareerApplication = async (req, res) => {
     let savedResume = null;
     let resumeLink = null;
 
-    // If resume is uploaded → save file
     if (resumeFile) {
       const uploadDir = path.join(process.cwd(), "uploads", "resumes");
+
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -34,6 +38,7 @@ export const submitCareerApplication = async (req, res) => {
 
       const backendURL =
         process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
+
       resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
     }
 
