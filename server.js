@@ -1,4 +1,6 @@
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
@@ -9,10 +11,37 @@ import enquiryRoutes from "./routes/enquiryRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import careerRoutes from "./routes/careerRoutes.js";
 
+import { checkBlockedIP } from "./tempBlock.js";
+import { monitorForms } from "./middleware/monitorForms.js";
+
 dotenv.config();
 connectDB();
 
 const app = express();
+
+// Apply globally to monitor all POST requests to forms
+app.use(checkBlockedIP);
+app.use(monitorForms);
+
+// Helmet - enhanced security headers
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    frameguard: { action: "sameorigin" },
+    hidePoweredBy: true,
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  }),
+);
+
+// Limit requests to forms to prevent bots
+const formLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again later.",
+  },
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,9 +52,9 @@ app.use(express.json());
 const uploadsPath = path.join(__dirname, "uploads");
 app.use("/uploads", express.static(uploadsPath));
 
-app.use("/api/enquiry", enquiryRoutes);
-app.use("/api/contact", contactRoutes);
-app.use("/api/careers", careerRoutes);
+app.use("/api/enquiry", formLimiter, enquiryRoutes);
+app.use("/api/contact", formLimiter, contactRoutes);
+app.use("/api/careers", formLimiter, careerRoutes);
 
 app.get("/", (req, res) => {
   res.send("✅ Ventura Steels Backend is running...");
