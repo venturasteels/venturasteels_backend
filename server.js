@@ -19,6 +19,9 @@ connectDB();
 
 const app = express();
 
+// REQUIRED for Render / proxies
+app.set("trust proxy", 1);
+
 // Apply globally to monitor all POST requests to forms
 app.use(checkBlockedIP);
 app.use(monitorForms);
@@ -52,6 +55,17 @@ app.use(
     },
   }),
 );
+
+// HSTS fix for proxy environments
+app.use((req, res, next) => {
+  if (req.secure || req.headers["x-forwarded-proto"] === "https") {
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+    );
+  }
+  next();
+});
 
 // Limit requests to forms to prevent bots
 const formLimiter = rateLimit({
