@@ -1,13 +1,36 @@
 import CareerApplication from "../models/Career.js";
 import path from "path";
 import fs from "fs";
+import { verifyRecaptcha } from "../utils/verifyRecaptcha.js";
 
 export const submitCareerApplication = async (req, res) => {
   try {
-    const { position, name, email, phone, message } = req.body;
+    const { position, name, email, phone, message, recaptchaToken } = req.body;
     const resumeFile = req.file;
 
-    // Validate required fields
+    /* ===============================
+       1️⃣ Verify reCAPTCHA v3
+    =============================== */
+    if (!recaptchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: "reCAPTCHA token missing ❌",
+      });
+    }
+
+    const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+
+    if (!recaptchaResult.success || recaptchaResult.score < 0.5) {
+      return res.status(403).json({
+        success: false,
+        message: "reCAPTCHA verification failed ❌",
+        score: recaptchaResult.score,
+      });
+    }
+
+    /* ===============================
+       2️⃣ Validate required fields
+    =============================== */
     if (!position || !name || !email || !phone) {
       return res.status(400).json({
         success: false,
@@ -15,6 +38,9 @@ export const submitCareerApplication = async (req, res) => {
       });
     }
 
+    /* ===============================
+       3️⃣ Resume Upload
+    =============================== */
     let savedResume = null;
     let resumeLink = null;
 
@@ -42,6 +68,9 @@ export const submitCareerApplication = async (req, res) => {
       resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
     }
 
+    /* ===============================
+       4️⃣ Save to MongoDB
+    =============================== */
     const newApplication = new CareerApplication({
       position,
       name,
@@ -49,22 +78,25 @@ export const submitCareerApplication = async (req, res) => {
       phone,
       message,
       resume: savedResume,
+      recaptchaScore: recaptchaResult.score, // optional but useful
     });
 
     await newApplication.save();
 
+    /* ===============================
+       5️⃣ Success Response
+    =============================== */
     res.status(201).json({
       success: true,
-      message: "Application saved successfully!",
+      message: "Career application submitted successfully ✅",
       applicationId: newApplication._id,
       resumeLink,
     });
   } catch (error) {
-    console.error("❌ Error saving career application:", error);
+    console.error("❌ Career application error:", error);
     res.status(500).json({
       success: false,
-      message: "Error saving career application.",
-      error: error.message,
+      message: "Error submitting career application",
     });
   }
 };
