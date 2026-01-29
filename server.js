@@ -26,10 +26,30 @@ app.use(monitorForms);
 // Helmet - enhanced security headers
 app.use(
   helmet({
-    contentSecurityPolicy: false,
-    frameguard: { action: "sameorigin" },
-    hidePoweredBy: true,
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://www.google.com",
+          "https://www.gstatic.com",
+        ],
+        frameSrc: ["'self'", "https://www.google.com"],
+        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
+    frameguard: { action: "deny" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    permissionsPolicy: {
+      features: {
+        camera: [],
+        microphone: [],
+        geolocation: [],
+        payment: [],
+      },
+    },
   }),
 );
 
