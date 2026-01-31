@@ -28,7 +28,6 @@ app.use(monitorForms);
 
 app.disable("x-powered-by");
 
-app.use(helmet());
 app.use(helmet.noSniff());
 
 app.use(
@@ -69,7 +68,6 @@ app.use((req, res, next) => {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   next();
 });
-
 
 // HSTS fix for proxy environments
 app.use((req, res, next) => {
