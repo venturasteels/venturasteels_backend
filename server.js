@@ -26,7 +26,11 @@ app.set("trust proxy", 1);
 app.use(checkBlockedIP);
 app.use(monitorForms);
 
-// Helmet - enhanced security headers
+app.disable("x-powered-by");
+
+app.use(helmet());
+app.use(helmet.noSniff());
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -38,8 +42,12 @@ app.use(
           "https://www.gstatic.com",
         ],
         frameSrc: ["'self'", "https://www.google.com"],
-        connectSrc: ["'self'"],
-        imgSrc: ["'self'", "data:"],
+        connectSrc: [
+          "'self'",
+          "https://www.google.com",
+          "https://www.gstatic.com",
+        ],
+        imgSrc: ["'self'", "data:", "https:"],
         styleSrc: ["'self'", "'unsafe-inline'"],
       },
     },
@@ -55,6 +63,13 @@ app.use(
     },
   }),
 );
+
+// Legacy but scanner-required
+app.use((req, res, next) => {
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
+
 
 // HSTS fix for proxy environments
 app.use((req, res, next) => {
