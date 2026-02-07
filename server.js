@@ -103,8 +103,16 @@ app.use("/api/enquiry", formLimiter, enquiryRoutes);
 app.use("/api/contact", formLimiter, contactRoutes);
 app.use("/api/careers", formLimiter, careerRoutes);
 
-app.get("/", (req, res) => {
-  res.send("✅ Ventura Steels Backend is running...");
+// app.get("/", (req, res) => {
+//   res.send("✅ Ventura Steels Backend is running...");
+// });
+
+const frontendPath = path.join(__dirname, "dist");
+
+app.use(express.static(frontendPath));
+
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 app.use((req, res) => {
