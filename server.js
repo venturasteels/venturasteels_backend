@@ -107,12 +107,8 @@ app.use("/api/careers", formLimiter, careerRoutes);
 //   res.send("✅ Ventura Steels Backend is running...");
 // });
 
-const frontendPath = path.join(__dirname, "dist");
-
-app.use(express.static(frontendPath));
-
-app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
+app.get("/", (req, res) => {
+  res.json({ success: true, message: "Backend running 🚀" });
 });
 
 app.use((req, res) => {
