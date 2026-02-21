@@ -32,11 +32,21 @@ export function monitorForms(req, res, next) {
     // Detect suspicious payload (non-standard characters in strings)
     const randomPayload = values.some((val) => {
       if (typeof val !== "string") return false;
-      // Allow letters, numbers, spaces, @ . , - (common B2B chars)
-      return /[^\w\s@.,\-]/.test(val);
+
+      const lower = val.toLowerCase();
+
+      return (
+        lower.includes("<script") ||
+        lower.includes("</script>") ||
+        lower.includes("drop table") ||
+        lower.includes("select *") ||
+        lower.includes("--") ||
+        lower.includes("insert into")
+      );
     });
 
-    if (emptySubmission || randomPayload) {
+    // if (emptySubmission || randomPayload) {
+    if (emptySubmission) {
       console.log(`❌ Suspicious submission from IP: ${req.ip}`, body);
 
       blockIP(req.ip); // temporarily block IP
