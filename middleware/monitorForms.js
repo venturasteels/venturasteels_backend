@@ -1,48 +1,45 @@
 // server/middleware/monitorForms.js
 import { blockIP } from "../tempBlock.js";
 
+/**
+ * Middleware to monitor suspicious POST submissions.
+ * Flags empty or potentially malicious payloads.
+ */
 export function monitorForms(req, res, next) {
   try {
-    if (req.method !== "POST") {
-      return next();
-    }
+    // Only POST requests are monitored
+    if (req.method !== "POST") return next();
 
-    // If body missing, skip
-    if (!req.body || typeof req.body !== "object") {
-      return next();
-    }
+    const body = req.body;
 
-    const values = Object.values(req.body);
+    // Skip if body is missing or not an object
+    if (!body || typeof body !== "object") return next();
 
-    if (!values.length) {
-      return next();
-    }
+    const values = Object.values(body);
 
-    // Detect empty submission safely
+    // Skip if body has no values
+    if (!values.length) return next();
+
+    // Detect empty submission (all fields empty or arrays empty)
     const emptySubmission = values.every((val) => {
       if (val === null || val === undefined) return true;
-
-      if (typeof val === "string") {
-        return val.trim() === "";
-      }
-
-      if (Array.isArray(val)) {
-        return val.length === 0;
-      }
-
+      if (typeof val === "string") return val.trim() === "";
+      if (Array.isArray(val)) return val.length === 0;
+      if (typeof val === "object") return Object.keys(val).length === 0;
       return false;
     });
 
-    // Detect suspicious payload safely
+    // Detect suspicious payload (non-standard characters in strings)
     const randomPayload = values.some((val) => {
       if (typeof val !== "string") return false;
-      return /[^\w\s@.,-]/.test(val);
+      // Allow letters, numbers, spaces, @ . , - (common B2B chars)
+      return /[^\w\s@.,\-]/.test(val);
     });
 
     if (emptySubmission || randomPayload) {
-      console.log(`❌ Suspicious submission from IP: ${req.ip}`, req.body);
+      console.log(`❌ Suspicious submission from IP: ${req.ip}`, body);
 
-      blockIP(req.ip);
+      blockIP(req.ip); // temporarily block IP
 
       return res.status(429).json({
         success: false,
@@ -50,9 +47,9 @@ export function monitorForms(req, res, next) {
       });
     }
 
-    next();
+    next(); // all good, continue
   } catch (error) {
-    console.error("MonitorForms Error:", error);
+    console.error("⚠️ monitorForms Error:", error);
     next(); // never crash server
   }
 }
