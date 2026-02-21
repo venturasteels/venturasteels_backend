@@ -29,13 +29,26 @@ app.disable("x-powered-by");
 /* ========================================
    CORS (FIRST)
 ======================================== */
+const allowedOrigins = ["https://venturasteels.com", "http://localhost:5173"];
+
 const corsOptions = {
-  origin: ["https://venturasteels.com"],
+  origin: function (origin, callback) {
+    // allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+// Apply CORS globally
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions)); // regex instead of "*"
 
 /* ========================================
    BODY PARSER (MUST COME BEFORE CUSTOM MIDDLEWARE)
