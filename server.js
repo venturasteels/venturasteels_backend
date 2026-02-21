@@ -85,7 +85,7 @@ app.use(monitorForms);
 ======================================== */
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
