@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+
 import connectDB from "./config/db.js";
 
 import enquiryRoutes from "./routes/enquiryRoutes.js";
@@ -19,40 +20,49 @@ connectDB();
 
 const app = express();
 
-// REQUIRED for Render / proxies
+/* ========================================
+   TRUST PROXY (Required for Render)
+======================================== */
 app.set("trust proxy", 1);
-
-// Apply globally to monitor all POST requests to forms
-app.use(checkBlockedIP);
-app.use(monitorForms);
-
 app.disable("x-powered-by");
 
-app.use(helmet.noSniff());
+/* ========================================
+   CORS (FIRST)
+======================================== */
+const corsOptions = {
+  origin: ["https://venturasteels.com"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+};
 
+app.use(cors(corsOptions));
+
+/* ========================================
+   BODY PARSER (MUST COME BEFORE CUSTOM MIDDLEWARE)
+======================================== */
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* ========================================
+   SECURITY HEADERS
+======================================== */
 app.use(
   helmet({
-    contentSecurityPolicy: false, // ❗ Disable CSP on backend
+    contentSecurityPolicy: false, // CSP handled on frontend
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-    permissionsPolicy: {
-      features: {
-        camera: [],
-        microphone: [],
-        geolocation: [],
-        payment: [],
-      },
-    },
   }),
 );
 
-// Legacy but scanner-required
+app.use(helmet.noSniff());
+
+// Legacy scanner-required header
 app.use((req, res, next) => {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   next();
 });
 
-// HSTS fix for proxy environments
+// HSTS for HTTPS (Render compatible)
 app.use((req, res, next) => {
   if (req.secure || req.headers["x-forwarded-proto"] === "https") {
     res.setHeader(
@@ -63,51 +73,67 @@ app.use((req, res, next) => {
   next();
 });
 
-// Limit requests to forms to prevent bots
+/* ========================================
+   CUSTOM SECURITY MIDDLEWARE
+   (NOW SAFE because body parser already runs)
+======================================== */
+app.use(checkBlockedIP);
+app.use(monitorForms);
+
+/* ========================================
+   RATE LIMITER
+======================================== */
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
   },
 });
 
+/* ========================================
+   STATIC FILES
+======================================== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const corsOptions = {
-  origin: "https://venturasteels.com",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-
 const uploadsPath = path.join(__dirname, "uploads");
+
 app.use("/uploads", express.static(uploadsPath));
 
+/* ========================================
+   ROUTES
+======================================== */
 app.use("/api/enquiry", formLimiter, enquiryRoutes);
 app.use("/api/contact", formLimiter, contactRoutes);
 app.use("/api/careers", formLimiter, careerRoutes);
-
-// app.get("/", (req, res) => {
-//   res.send("✅ Ventura Steels Backend is running...");
-// });
 
 app.get("/", (req, res) => {
   res.json({ success: true, message: "Backend running 🚀" });
 });
 
+/* ========================================
+   404 HANDLER
+======================================== */
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
+/* ========================================
+   GLOBAL ERROR HANDLER
+======================================== */
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
   res.status(500).json({ success: false, message: "Internal server error" });
 });
 
+/* ========================================
+   START SERVER
+======================================== */
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
