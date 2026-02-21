@@ -32,24 +32,7 @@ app.use(helmet.noSniff());
 
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://www.google.com",
-          "https://www.gstatic.com",
-        ],
-        frameSrc: ["'self'", "https://www.google.com"],
-        connectSrc: [
-          "'self'",
-          "https://www.google.com",
-          "https://www.gstatic.com",
-        ],
-        imgSrc: ["'self'", "data:", "https:"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-      },
-    },
+    contentSecurityPolicy: false, // ❗ Disable CSP on backend
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     permissionsPolicy: {
@@ -93,7 +76,13 @@ const formLimiter = rateLimit({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(cors());
+const corsOptions = {
+  origin: "https://venturasteels.com",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const uploadsPath = path.join(__dirname, "uploads");
