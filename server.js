@@ -90,8 +90,8 @@ app.use((req, res, next) => {
    CUSTOM SECURITY MIDDLEWARE
    (NOW SAFE because body parser already runs)
 ======================================== */
-app.use(checkBlockedIP);
-app.use(monitorForms);
+// app.use(checkBlockedIP);
+// app.use(monitorForms);
 
 /* ========================================
    RATE LIMITER
