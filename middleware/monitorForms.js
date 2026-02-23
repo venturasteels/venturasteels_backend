@@ -47,13 +47,11 @@ export function monitorForms(req, res, next) {
 
     // if (emptySubmission || randomPayload) {
     if (emptySubmission) {
-      console.log(`❌ Suspicious submission from IP: ${req.ip}`, body);
+      console.log(`⚠️ Empty submission from IP: ${req.ip}`, body);
 
-      blockIP(req.ip); // temporarily block IP
-
-      return res.status(429).json({
+      return res.status(400).json({
         success: false,
-        message: "Suspicious submission detected. Try again later.",
+        message: "Invalid form submission.",
       });
     }
 
