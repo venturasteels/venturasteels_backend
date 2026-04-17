@@ -15,6 +15,8 @@ import careerRoutes from "./routes/careerRoutes.js";
 import { checkBlockedIP } from "./tempBlock.js";
 import { monitorForms } from "./middleware/monitorForms.js";
 
+import quickEnquiryRoutes from "./routes/quickenquiryRoutes.js";
+
 dotenv.config();
 connectDB();
 
@@ -118,6 +120,7 @@ app.use("/uploads", express.static(uploadsPath));
 app.use("/api/enquiry", formLimiter, enquiryRoutes);
 app.use("/api/contact", formLimiter, contactRoutes);
 app.use("/api/careers", formLimiter, careerRoutes);
+app.use("/api/quick-enquiry", formLimiter, quickEnquiryRoutes);
 
 app.get("/", (req, res) => {
   res.json({ success: true, message: "Backend running 🚀" });

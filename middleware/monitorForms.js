@@ -53,7 +53,7 @@ export function monitorForms(req, res, next) {
         success: false,
         message: "Invalid form submission.",
       });
-    }
+    }g
 
     next(); // all good, continue
   } catch (error) {
