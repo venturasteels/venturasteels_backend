@@ -1,7 +1,6 @@
 import CareerApplication from "../models/Career.js";
-import path from "path";
-import fs from "fs";
 import { verifyRecaptcha } from "../utils/verifyRecaptcha.js";
+import { uploadBufferToCloudinary } from "../utils/uploadedToCloudinary.js";
 
 export const submitCareerApplication = async (req, res) => {
   try {
@@ -38,34 +37,33 @@ export const submitCareerApplication = async (req, res) => {
       });
     }
 
+    if (!resumeFile) {
+      return res.status(400).json({
+        success: false,
+        message: "Resume file is required.",
+      });
+    }
+
     /* ===============================
-       3️⃣ Resume Upload
+    3️⃣ Resume Upload (Cloudinary)
     =============================== */
     let savedResume = null;
     let resumeLink = null;
 
     if (resumeFile) {
-      const uploadDir = path.join(process.cwd(), "uploads", "resumes");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      const uniqueName = `${Date.now()}_${resumeFile.originalname}`;
-      const filePath = path.join(uploadDir, uniqueName);
-
-      fs.writeFileSync(filePath, resumeFile.buffer);
+      const result = await uploadBufferToCloudinary(
+        resumeFile.buffer,
+        resumeFile.originalname,
+      );
 
       savedResume = {
         fileName: resumeFile.originalname,
-        filePath: `uploads/resumes/${uniqueName}`,
+        filePath: result.secure_url,
         contentType: resumeFile.mimetype,
+        publicId: result.public_id, // useful if you ever want to delete it later
       };
 
-      const backendURL =
-        process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
-
-      resumeLink = `${backendURL}/uploads/resumes/${uniqueName}`;
+      resumeLink = result.secure_url;
     }
 
     /* ===============================

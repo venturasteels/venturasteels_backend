@@ -10,7 +10,9 @@ const CareerSchema = new mongoose.Schema({
     fileName: String,
     filePath: String,
     contentType: String,
+    publicId: String, // ✅ add this
   },
+  recaptchaScore: { type: Number }, // ✅ add this
   createdAt: { type: Date, default: Date.now },
 });
 
